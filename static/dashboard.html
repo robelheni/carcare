@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CarCare - Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>🚗 CarCare Dashboard</h1>
+            <p>Welcome, <span id="username"></span>!</p>
+            <p>Your token: <span id="token" style="font-size: 10px; word-break: break-all;"></span></p>
+            <button onclick="logout()">Logout</button>
+        </div>
+    </div>
+    
+    <script>
+        // Check if user is logged in
+        const token = localStorage.getItem('token');
+        const username = localStorage.getItem('username');
+        
+        if (!token || !username) {
+            // Not logged in - redirect to login page
+            window.location.href = '/';
+        } else {
+            // Show username
+            document.getElementById('username').textContent = username;
+            document.getElementById('token').textContent = token;
+        }
+        
+        // Logout function
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('username');
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>

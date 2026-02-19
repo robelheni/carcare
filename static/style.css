@@ -91,3 +91,16 @@ button:hover {
 .error {
     color: #ef4444;
 }
+
+
+
+/* Login page link */
+a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+a:hover {
+    text-decoration: underline;
+}

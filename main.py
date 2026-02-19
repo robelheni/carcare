@@ -11,6 +11,8 @@ from sqlalchemy.orm import Session
 from database import SessionLocal, User
 from auth import hash_password
 
+from auth import verify_password, create_access_token
+
 app = FastAPI()
 
 # Add CORS (allows frontend to call backend)
@@ -52,6 +54,7 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True #allows converting SQLAlchemy to pydantic
+
 
 #registration endpoint
 
@@ -105,8 +108,64 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
         "User": UserResponse.from_orm(new_user)
     }
 
+#padantic model for login, defines what does we expect for login
+class UserLogin(BaseModel):
+    username:str
+    password:str
+
+
+#Loogin endpoint
+@app.post("/auth/login")
+def login(login_data:UserLogin, db:Session = Depends(get_db)):
+    """
+    Login a user and return a JWT token.
+    
+    Steps:
+    1. Find user by username
+    2. Verify password
+    3. Create JWT token
+    4. Return token
+    """
+
+    #let's find the  user
+    user = db.query(User).filter(User.username == login_data.username).first()
+
+    if not user:
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "Invalid username or password"
+        )
+    
+    #verify password
+    if not verify_password(login_data.password, user.password_hash):
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "Invalid username or password"
+        )
+
+    #create JWT token
+    token_data = {
+        "user_id": user.id,
+        "username": user.username
+    }
+    access_token = create_access_token(token_data)
+
+    #return token
+    return{
+        "access_token": access_token,
+        "token_type":"bearer",
+        "username":user.username
+    }
+
 @app.get("/")
 def read_root():
     return FileResponse('static/index.html')
 
 
+@app.get("/login")
+def login_page():
+    return FileResponse('static/login.html')
+
+@app.get("/dashboard")
+def dashboard_page():
+    return FileResponse('static/dashboard.html')
