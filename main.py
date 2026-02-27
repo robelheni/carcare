@@ -288,6 +288,49 @@ def get_vehicles(
         "vehicles":[VehicleResponse.from_orm(v) for v in vehicles]
     }
 
+# Delete vehicle endpoint
+@app.delete("/vehicles/{vehicle_id}")
+def delete_vehicle(
+    vehicle_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Delete a vehicle.
+    
+    Steps:
+    1. Get current user (from token)
+    2. Find vehicle by ID
+    3. Check if user owns this vehicle
+    4. Delete from database
+    5. Return success
+    """
+    
+    # Find vehicle by ID
+    vehicle = db.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
+    
+    # If vehicle doesn't exist
+    if not vehicle:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Vehicle not found"
+        )
+    
+    # CRITICAL: Check if user owns this vehicle
+    if vehicle.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't own this vehicle"
+        )
+    
+    # Delete vehicle
+    db.delete(vehicle)
+    db.commit()
+    
+    return {
+        "message": "Vehicle deleted successfully"
+    }
+
 @app.get("/")
 def read_root():
     return FileResponse('static/index.html')

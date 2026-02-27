@@ -1,5 +1,6 @@
 //API URL -where your server lives
 const API_URL = 'http://127.0.0.1:8000';
+const token = localStorage.getItem('token');
 
 //figure out which page we are on
 const currentPage = window.location.pathname;
@@ -201,50 +202,95 @@ if(currentPage === "/dashboard"){
         }
 
     });
+}
 
-    //function to load vehicles
-    async function loadVehicles(){
-        const vehiclesList = document.getElementById('vehiclesList');
-
-        try {
-            const response = await fetch (`${API_URL}/vehicles`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}` //send token!
-                }
-            });
-
-            const data = await response.json();
-
-            if(response.ok){
-                const vehicles = data.vehicles;
-
-                if(vehicles.length ===0){
-                    vehiclesList.innerHTML = '<p class = "empty-state">No vehicles yet. Add your first vehicle above!</p>'
-                    return;
-
-                }
-
-                //Display vehicles
-                vehiclesList.innerHtml = vehicles.map( vehicle => `
-                        <div class="vehicle-card">
-                        <h3>${vehicle.name}</h3>
-                        <div class="vehicle-info">
-                            ${vehicle.registration ? `<p><strong>Registration:</strong> ${vehicle.registration}</p>` : ''}
-                            <p><strong>Mileage:</strong> ${vehicle.mileage.toLocaleString()} miles</p>
-                            ${vehicle.year ? `<p><strong>Year:</strong> ${vehicle.year}</p>` : ''}
-                            ${vehicle.fuel_type ? `<p><strong>Fuel Type:</strong> ${vehicle.fuel_type}</p>` : ''}
-                        </div>
-                    </div>
-                
-                `).join('');
-            }else {
-                vehiclesList.innerHTML = '<p class ="error"> failed to load vehicles</p>';
+// Function to load vehicles
+async function loadVehicles() {
+    const vehiclesList = document.getElementById('vehiclesList');
+    
+    try {
+        const response = await fetch(`${API_URL}/vehicles`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
             }
-        }catch(error){
-            vehiclesList.innerHTML = '<p class="error">Network error </p>';
-            console.error('Error:', error);
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            const vehicles = data.vehicles;
+            
+            if (vehicles.length === 0) {
+                vehiclesList.innerHTML = '<p class="empty-state">No vehicles yet. Add your first vehicle above!</p>';
+                return;
+            }
+            
+            // Display vehicles with DELETE button
+            vehiclesList.innerHTML = vehicles.map(vehicle => `
+                <div class="vehicle-card">
+                    <h3>${vehicle.name}</h3>
+                    <div class="vehicle-info">
+                        ${vehicle.registration ? `<p><strong>Registration:</strong> ${vehicle.registration}</p>` : ''}
+                        <p><strong>Mileage:</strong> ${vehicle.mileage.toLocaleString()} miles</p>
+                        ${vehicle.year ? `<p><strong>Year:</strong> ${vehicle.year}</p>` : ''}
+                        ${vehicle.fuel_type ? `<p><strong>Fuel Type:</strong> ${vehicle.fuel_type}</p>` : ''}
+                    </div>
+                    <button class="btn-delete" onclick="deleteVehicle(${vehicle.id}, '${vehicle.name}')">
+                        Delete Vehicle
+                    </button>
+                </div>
+            `).join('');
+        } else {
+            vehiclesList.innerHTML = '<p class="error">Failed to load vehicles</p>';
         }
+    } catch (error) {
+        vehiclesList.innerHTML = '<p class="error">Network error</p>';
+        console.error('Error:', error);
     }
+}
 
+// Function to delete vehicle
+window.deleteVehicle = async function(vehicleId, vehicleName) {
+    // Confirm before deleting
+    if (!confirm(`Are you sure you want to delete "${vehicleName}"? This cannot be undone.`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_URL}/vehicles/${vehicleId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            // Show success message briefly
+            const tempMessage = document.createElement('div');
+            tempMessage.textContent = '✓ ' + data.message;
+            tempMessage.className = 'success';
+            tempMessage.style.position = 'fixed';
+            tempMessage.style.top = '20px';
+            tempMessage.style.right = '20px';
+            tempMessage.style.padding = '15px 25px';
+            tempMessage.style.borderRadius = '8px';
+            tempMessage.style.zIndex = '1000';
+            document.body.appendChild(tempMessage);
+            
+            setTimeout(() => {
+                tempMessage.remove();
+            }, 3000);
+            
+            // Reload vehicles list
+            loadVehicles();
+        } else {
+            alert('Error: ' + data.detail);
+        }
+    } catch (error) {
+        alert('Network error');
+        console.error('Error:', error);
+    }
 }

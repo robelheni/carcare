@@ -406,3 +406,27 @@ body {
         grid-template-columns: 1fr;
     }
 }
+
+/* Delete button */
+.btn-delete {
+    width: 100%;
+    margin-top: 16px;
+    padding: 10px;
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-delete:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+}
+
+.btn-delete:active {
+    transform: translateY(0);
+}
