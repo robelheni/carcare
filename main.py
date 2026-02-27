@@ -2,16 +2,19 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer,HTTPAuthorizationCredentials
+from fastapi import Security
 
-#import pydantic forr validation
+
 from pydantic import BaseModel, EmailStr
-
 from sqlalchemy.orm import Session
+from datetime import datetime
 
-from database import SessionLocal, User
-from auth import hash_password
+from database import SessionLocal, User, Vehicle
+from auth import hash_password, verify_password, create_access_token, verify_token
 
-from auth import verify_password, create_access_token
+
+
 
 app = FastAPI()
 
@@ -38,6 +41,63 @@ def get_db ():
         yield db
     finally:
         db.close()
+
+#create a secuity scheme
+
+security = HTTPBearer()
+#dependency to grt the current user form token
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Security(security),
+    db: Session = Depends(get_db)
+):
+
+    """
+    Extract user from JWT token.
+    
+    This function runs BEFORE protected endpoints.
+    It checks the token and returns the current user.
+    
+    Steps:
+    1. Get token from Authorization header
+    2. Verify token
+    3. Extract user_id from token
+    4. Find user in database
+    5. Return user object
+    """
+
+    #get token form credentials
+    
+    token = credentials.credentials
+    payload= verify_token(token)
+
+    if payload is None:
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail ="invalid or expired token"
+        )
+    
+    #extract user_id from token
+    user_id =payload.get("user_id")
+
+    if user_id is None:
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "invalid token payload"
+        )
+    
+    #find user in database
+    user = db.query(User).filter(User.id==user_id).first()
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail = "user not found"
+        )
+
+    #return the user object
+    return user
+
+
 
 #pydantic model for rregistration
 #pydantic automatically validates id username is a string, email is a valaid format and the pass word is a string
@@ -113,6 +173,30 @@ class UserLogin(BaseModel):
     username:str
     password:str
 
+#pydantic model for creating a vehicle
+class VehicleCreate(BaseModel):
+    #defines what we expect when addin a vehicle
+    name:str
+    registration:str =None #optional
+    mileage:int
+    year: int =None #optional
+    fuel_type: str =None #optional
+
+#pydantic model for vehicle response
+class VehicleResponse(BaseModel):
+    #defines what we send back to the user.
+
+    id: int
+    user_id: int
+    name: str
+    registration: str =None
+    mileage: int
+    year: int =None
+    fuel_type: str =None
+    created_at: datetime
+
+    class Config:
+        from_attributes =True
 
 #Loogin endpoint
 @app.post("/auth/login")
@@ -155,6 +239,53 @@ def login(login_data:UserLogin, db:Session = Depends(get_db)):
         "access_token": access_token,
         "token_type":"bearer",
         "username":user.username
+    }
+
+@app.post("/vehicles", status_code=status.HTTP_201_CREATED)
+def add_vehicle(
+    vehicle_data: VehicleCreate,
+    current_user:User = Depends(get_current_user),
+    db:Session = Depends(get_db)
+):
+    """
+    Add a new vehicle for the current user.
+    
+    Steps:
+    1. Get current user (from token)
+    2. Create vehicle linked to this user
+    3. Save to database
+    4. Return vehicle
+    """
+
+    new_vehicle = Vehicle(
+        user_id = current_user.id, #link to the current user
+        name = vehicle_data.name,
+        registration=vehicle_data.registration,
+        mileage=vehicle_data.mileage,
+        year=vehicle_data.year,
+        fuel_type=vehicle_data.fuel_type
+    )
+
+    db.add(new_vehicle)
+    db.commit()
+    db.refresh(new_vehicle)
+
+    return {
+        "message":"vehicle added succesfully",
+        "vehicle": VehicleResponse.from_orm(new_vehicle)
+    }
+
+
+#get all vehicles for current user
+@app.get("/vehicles")
+def get_vehicles(
+    current_user: User = Depends(get_current_user),
+    db:Session = Depends(get_db)
+):
+    vehicles=db.query(Vehicle).filter(Vehicle.user_id == current_user.id).all()
+
+    return{
+        "vehicles":[VehicleResponse.from_orm(v) for v in vehicles]
     }
 
 @app.get("/")

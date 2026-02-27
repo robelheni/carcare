@@ -123,3 +123,128 @@ if(currentPage === "/login"){
 
 
 }
+
+if(currentPage === "/dashboard"){
+
+    //check if user is logged in
+    const token = localStorage.getItem('token');
+    const username = localStorage.getItem('username');
+
+    if (!token || !username){
+        window.location.href = '/login';
+    }else{
+        document.getElementById('username').textContent = username;
+
+        loadVehicles();
+    }
+
+    //handle logout button
+    document.getElementById('logoutBtn').addEventListener('click',()=>{
+        localStorage.removeItem('token');
+        localStorage.removeItem('username');
+        window.location.href = '/login';
+
+    });
+
+    //handle add vehicle form 
+    const addVehicleForm = document.getElementById('addVehicleForm');
+    const addVehicleMessage = document.getElementById('addVehicleMessage');
+
+    addVehicleForm.addEventListener('submit', async(e)=>{
+        e.preventDefault();
+
+        //getting for values
+        const name = document.getElementById('vehicle-name').value;
+        const registration = document.getElementById('vehicle-registration').value || null;
+        const mileage = parseInt(document.getElementById('vehicle-mileage').value);
+        const year = document.getElementById('vehicle-year').value ? parseInt(document.getElementById('vehicle-year').value) : null;
+        const fuelType = document.getElementById('vehicle-fuel-type').value || null;
+
+        const vehicleData = {
+            name: name,
+            registration: registration,
+            mileage: mileage,
+            year: year,
+            fuel_type: fuelType
+
+        };
+
+        try {
+            const response = await fetch(`${API_URL}/vehicles`,{
+                method: 'POST',
+                headers:{
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(vehicleData)
+            });
+
+            const data =await response.json();
+
+            if(response.ok){
+                addVehicleMessage.textContent = '✓' +data.message;
+                addVehicleMessage.className = 'success';
+                addVehicleForm.reset();
+
+
+                //reload vehicles to show a new one
+                loadVehicles();
+            }else{
+                addVehicleMessage.textContent = 'x' +data.detail;
+                addVehicleMessage.className = 'error';
+                
+            }
+        } catch (error){
+            addVehicleMessage.textContent = 'x network error';
+            addVehicleMessage.className=  'error';
+            console.error('Error:', error);
+        }
+
+    });
+
+    //function to load vehicles
+    async function loadVehicles(){
+        const vehiclesList = document.getElementById('vehiclesList');
+
+        try {
+            const response = await fetch (`${API_URL}/vehicles`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}` //send token!
+                }
+            });
+
+            const data = await response.json();
+
+            if(response.ok){
+                const vehicles = data.vehicles;
+
+                if(vehicles.length ===0){
+                    vehiclesList.innerHTML = '<p class = "empty-state">No vehicles yet. Add your first vehicle above!</p>'
+                    return;
+
+                }
+
+                //Display vehicles
+                vehiclesList.innerHtml = vehicles.map( vehicle => `
+                        <div class="vehicle-card">
+                        <h3>${vehicle.name}</h3>
+                        <div class="vehicle-info">
+                            ${vehicle.registration ? `<p><strong>Registration:</strong> ${vehicle.registration}</p>` : ''}
+                            <p><strong>Mileage:</strong> ${vehicle.mileage.toLocaleString()} miles</p>
+                            ${vehicle.year ? `<p><strong>Year:</strong> ${vehicle.year}</p>` : ''}
+                            ${vehicle.fuel_type ? `<p><strong>Fuel Type:</strong> ${vehicle.fuel_type}</p>` : ''}
+                        </div>
+                    </div>
+                
+                `).join('');
+            }else {
+                vehiclesList.innerHTML = '<p class ="error"> failed to load vehicles</p>';
+            }
+        }catch(error){
+            vehiclesList.innerHTML = '<p class="error">Network error </p>';
+            console.error('Error:', error);
+        }
+    }
+
+}

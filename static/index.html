@@ -3,44 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carcare-register</title>
-    <link rel="stylesheet" href ="/static/style.css">
-
+    <title>CarCare - Register</title>
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <div class="container">
-        <div class="card">
-            <h1>Carcare</h1>
-            <h2>Create Account</h2>
-
-            <form id = "registerForm">
-                <div class ="form-group">
-                    <label>Username</label>
-                    <input type ="text" id ="username" required>
+    <div class="auth-container">
+        <div class="auth-left">
+            <div class="brand">
+                <div class="logo">🚗</div>
+                <h1>CarCare</h1>
+                <p class="tagline">Track your vehicle maintenance like a pro</p>
+            </div>
+            <div class="features">
+                <div class="feature-item">
+                    <span class="feature-icon">📊</span>
+                    <div>
+                        <h3>Track Everything</h3>
+                        <p>Keep detailed records of all maintenance</p>
+                    </div>
                 </div>
-                <div class ="form-group">
-                    <label>Email</label>
-                    <input type ="email" id ="email" required>
+                <div class="feature-item">
+                    <span class="feature-icon">🔔</span>
+                    <div>
+                        <h3>Never Miss Service</h3>
+                        <p>Get reminders for upcoming maintenance</p>
+                    </div>
                 </div>
-                <div class ="form-group">
-                    <label>Password</label>
-                    <input type ="password" id ="password" required>
+                <div class="feature-item">
+                    <span class="feature-icon">💰</span>
+                    <div>
+                        <h3>Save Money</h3>
+                        <p>Prevent costly repairs with timely service</p>
+                    </div>
                 </div>
+            </div>
+        </div>
 
-                <button type = "submit"> Register</button>
-                <p id = "message"></p>
-                <p style="text-align:center; margin-top: 15px;">
-                    Already have an account? 
-                    <a href="/login">Login here</a>
-                </p>
+        <div class="auth-right">
+            <div class="auth-card">
+                <h2>Create Account</h2>
+                <p class="subtitle">Join CarCare and start tracking today</p>
 
-                
+                <form id="registerForm">
+                    <div class="input-group">
+                        <label>Username</label>
+                        <input type="text" id="username" placeholder="Choose a username" required>
+                    </div>
 
-            </form>
+                    <div class="input-group">
+                        <label>Email</label>
+                        <input type="email" id="email" placeholder="your@email.com" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label>Password</label>
+                        <input type="password" id="password" placeholder="At least 8 characters" required>
+                    </div>
+
+                    <button type="submit" class="btn-primary">Create Account</button>
+                    
+                    <p id="message"></p>
+
+                    <p class="auth-switch">
+                        Already have an account? 
+                        <a href="/login">Sign in</a>
+                    </p>
+                </form>
+            </div>
         </div>
     </div>
 
-    <script src = "/static/script.js"></script>
-    
+    <script src="/static/script.js"></script>
 </body>
 </html>

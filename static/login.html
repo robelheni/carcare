@@ -7,34 +7,67 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <div class="container">
-        <div class="card">
-            <h1>CarCare</h1>
-            <h2>Welcome Back</h2>
-            
-            <form id="loginForm">
-                <div class="form-group">
-                    <label>Username</label>
-                    <input type="text" id="login-username" required>
+    <div class="auth-container">
+        <div class="auth-left">
+            <div class="brand">
+                <div class="logo">🚗</div>
+                <h1>CarCare</h1>
+                <p class="tagline">Welcome back!</p>
+            </div>
+            <div class="features">
+                <div class="feature-item">
+                    <span class="feature-icon">✨</span>
+                    <div>
+                        <h3>Your Garage Awaits</h3>
+                        <p>Access all your vehicles in one place</p>
+                    </div>
                 </div>
-                
-                <div class="form-group">
-                    <label>Password</label>
-                    <input type="password" id="login-password" required>
+                <div class="feature-item">
+                    <span class="feature-icon">📈</span>
+                    <div>
+                        <h3>Stay Organized</h3>
+                        <p>View maintenance history and upcoming tasks</p>
+                    </div>
                 </div>
-                
-                <button type="submit">Login</button>
-                
-                <p id="loginMessage"></p>
-                
-                <p style="text-align:center; margin-top: 15px;">
-                    Don't have an account? 
-                    <a href="/">Register here</a>
-                </p>
-            </form>
+                <div class="feature-item">
+                    <span class="feature-icon">🔒</span>
+                    <div>
+                        <h3>Secure & Private</h3>
+                        <p>Your data is encrypted and protected</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="auth-right">
+            <div class="auth-card">
+                <h2>Welcome Back</h2>
+                <p class="subtitle">Sign in to access your garage</p>
+
+                <form id="loginForm">
+                    <div class="input-group">
+                        <label>Username</label>
+                        <input type="text" id="login-username" placeholder="Your username" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label>Password</label>
+                        <input type="password" id="login-password" placeholder="Your password" required>
+                    </div>
+
+                    <button type="submit" class="btn-primary">Sign In</button>
+                    
+                    <p id="loginMessage"></p>
+
+                    <p class="auth-switch">
+                        Don't have an account? 
+                        <a href="/">Create one</a>
+                    </p>
+                </form>
+            </div>
         </div>
     </div>
-    
+
     <script src="/static/script.js"></script>
 </body>
 </html>

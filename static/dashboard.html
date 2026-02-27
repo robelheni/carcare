@@ -7,35 +7,73 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <div class="container">
-        <div class="card">
-            <h1>🚗 CarCare Dashboard</h1>
-            <p>Welcome, <span id="username"></span>!</p>
-            <p>Your token: <span id="token" style="font-size: 10px; word-break: break-all;"></span></p>
-            <button onclick="logout()">Logout</button>
-        </div>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <h1>🚗 CarCare</h1>
+            <div class="user-info">
+                <span>Welcome, <strong id="username"></strong>!</span>
+                <button id="logoutBtn" class="btn-secondary">Logout</button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="dashboard-main">
+            
+            <!-- Add Vehicle Section -->
+            <section class="card">
+                <h2>Add New Vehicle</h2>
+                <form id="addVehicleForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Vehicle Name *</label>
+                            <input type="text" id="vehicle-name" placeholder="e.g. My Honda Civic" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Registration</label>
+                            <input type="text" id="vehicle-registration" placeholder="e.g. AB12 CDE">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Current Mileage *</label>
+                            <input type="number" id="vehicle-mileage" placeholder="e.g. 45000" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Year</label>
+                            <input type="number" id="vehicle-year" placeholder="e.g. 2018" min="1900" max="2030">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Fuel Type</label>
+                            <select id="vehicle-fuel-type">
+                                <option value="">Select...</option>
+                                <option value="Petrol">Petrol</option>
+                                <option value="Diesel">Diesel</option>
+                                <option value="Electric">Electric</option>
+                                <option value="Hybrid">Hybrid</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary">Add Vehicle</button>
+                    <p id="addVehicleMessage"></p>
+                </form>
+            </section>
+
+            <!-- Vehicles List -->
+            <section class="card">
+                <h2>My Vehicles</h2>
+                <div id="vehiclesList">
+                    <p class="loading">Loading vehicles...</p>
+                </div>
+            </section>
+        </main>
     </div>
-    
-    <script>
-        // Check if user is logged in
-        const token = localStorage.getItem('token');
-        const username = localStorage.getItem('username');
-        
-        if (!token || !username) {
-            // Not logged in - redirect to login page
-            window.location.href = '/';
-        } else {
-            // Show username
-            document.getElementById('username').textContent = username;
-            document.getElementById('token').textContent = token;
-        }
-        
-        // Logout function
-        function logout() {
-            localStorage.removeItem('token');
-            localStorage.removeItem('username');
-            window.location.href = '/';
-        }
-    </script>
+
+    <script src="/static/script.js"></script>
 </body>
 </html>
