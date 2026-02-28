@@ -6,11 +6,11 @@ from fastapi.security import HTTPBearer,HTTPAuthorizationCredentials
 from fastapi import Security
 
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, date
 
-from database import SessionLocal, User, Vehicle
+from database import SessionLocal, User, Vehicle, MaintenanceLog
 from auth import hash_password, verify_password, create_access_token, verify_token
 
 
@@ -114,6 +114,34 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True #allows converting SQLAlchemy to pydantic
+
+
+class MaintenanceLogCreate(BaseModel):
+    #defines the data we expect when adding a log
+
+
+    log_type: str
+    date: date
+    mileage: int
+    cost: float = None
+    notes: str = None
+
+class MaintenanceLogResponse(BaseModel):
+    #defines what we send back to the user.
+
+    id: int
+    vehicle_id : int
+    date: date
+    mileage: int
+    cost: float = None
+    notes: str = None
+    created_at: datetime
+    log_type: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+    
+
 
 
 #registration endpoint
@@ -331,6 +359,119 @@ def delete_vehicle(
         "message": "Vehicle deleted successfully"
     }
 
+@app.post("/vehicles/{vehicle_id}/logs", status_code = status.HTTP_201_CREATED)
+def add_maintenance_log(
+    vehicle_id: int,
+    log_data: MaintenanceLogCreate,
+    current_user: User = Depends(get_current_user),
+    db:Session = Depends(get_db)
+
+):
+
+    # Find vehicle
+    vehicle = db.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
+
+    if not vehicle:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Vehicle not found"
+        )
+
+    # Check authorization
+    if vehicle.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't own this vehicle"
+        )
+
+        # Create log
+    new_log = MaintenanceLog(
+        vehicle_id=vehicle_id,
+        log_type=log_data.log_type,
+        date=log_data.date,
+        mileage=log_data.mileage,
+        cost=log_data.cost,
+        notes=log_data.notes
+    )
+
+    db.add(new_log)
+    db.commit()
+    db.refresh(new_log)
+
+    return {
+        "message": "Maintenance log added successfully",
+        "log": MaintenanceLogResponse.from_orm(new_log)
+    }
+
+@app.get("/vehicles/{vehicle_id}/logs")
+def get_vehicle_logs(
+    vehicle_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+
+    #get all maintenance logs for a vehicle
+
+    #find vehicle
+    vehicle = db.query(Vehicle).filter(Vehicle.id ==vehicle_id).first()
+
+    if not vehicle:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Vehicle not found"
+        )
+
+    # Check authorization
+    if vehicle.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't own this vehicle"
+        )
+
+    # Get logs, ordered by date (newest first)
+    logs = db.query(MaintenanceLog).filter(
+        MaintenanceLog.vehicle_id == vehicle_id
+    ).order_by(MaintenanceLog.date.desc()).all()
+
+    return {
+        "logs": [MaintenanceLogResponse.from_orm(log) for log in logs]
+    }
+
+@app.delete("/logs/{log_id}")
+def delete_log(
+    log_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session =Depends(get_db)
+):
+
+    #find log
+    log = db.query (MaintenanceLog).filter(MaintenanceLog.id == log_id).first()
+
+    if not log: 
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = "Log not found"
+        )
+
+    #find vehicle to check ownership
+    vehicle = db.query(Vehicle).filter(Vehicle.id == log.vehicle_id).first()
+
+    #check authorization
+    if vehicle.user_id != current_user.id:
+        raise HTTPException(
+            status_code = status.HTTP_403_FORBIDDEN,
+            detail = "You dont own this log"
+
+        )
+
+    db.delete(log)
+    db.commit()
+
+    return {
+        "message": "Log deleted successfully"
+    }
+
+
 @app.get("/")
 def read_root():
     return FileResponse('static/index.html')
@@ -343,3 +484,7 @@ def login_page():
 @app.get("/dashboard")
 def dashboard_page():
     return FileResponse('static/dashboard.html')
+
+@app.get("/vehicle/{vehicle_id}")
+def vehicle_page(vehicle_id: int):
+    return FileResponse('static/vehicle.html')

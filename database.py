@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, DateTime,Date, ForeignKey,Numeric
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
@@ -44,3 +44,22 @@ class Vehicle(Base):
 
     #relationship with a user
     user = relationship("User", back_populates="vehicles")
+
+    # NEW: Relationship to logs
+    logs = relationship("MaintenanceLog", back_populates="vehicle", cascade="all, delete-orphan")
+
+
+class MaintenanceLog(Base):
+    __tablename__ = "maintenance_logs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    vehicle_id = Column(Integer, ForeignKey("vehicles.id"), nullable=False)
+    log_type = Column(String(50), nullable=False)
+    date = Column(Date, nullable=False)
+    mileage = Column(Integer, nullable=False)
+    cost = Column(Numeric(10, 2), nullable=True)  # Optional, decimal with 2 places
+    notes = Column(String(500), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationship to vehicle
+    vehicle = relationship("Vehicle", back_populates="logs")

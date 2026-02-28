@@ -228,7 +228,7 @@ async function loadVehicles() {
             
             // Display vehicles with DELETE button
             vehiclesList.innerHTML = vehicles.map(vehicle => `
-                <div class="vehicle-card">
+                <div class="vehicle-card" onclick="window.location.href='/vehicle/${vehicle.id}'">
                     <h3>${vehicle.name}</h3>
                     <div class="vehicle-info">
                         ${vehicle.registration ? `<p><strong>Registration:</strong> ${vehicle.registration}</p>` : ''}
@@ -236,7 +236,7 @@ async function loadVehicles() {
                         ${vehicle.year ? `<p><strong>Year:</strong> ${vehicle.year}</p>` : ''}
                         ${vehicle.fuel_type ? `<p><strong>Fuel Type:</strong> ${vehicle.fuel_type}</p>` : ''}
                     </div>
-                    <button class="btn-delete" onclick="deleteVehicle(${vehicle.id}, '${vehicle.name}')">
+                    <button class="btn-delete" onclick="event.stopPropagation(); deleteVehicle(${vehicle.id}, '${vehicle.name}')">
                         Delete Vehicle
                     </button>
                 </div>
@@ -294,3 +294,272 @@ window.deleteVehicle = async function(vehicleId, vehicleName) {
         console.error('Error:', error);
     }
 }
+
+
+//VEHICLE DETSAIL PAGE
+
+if(currentPage.startsWith('/vehicle/')){
+
+    //check if logged in
+    const token = localStorage.getItem('token');
+    if(!token){
+        window.location.href = '/login';
+    }
+
+    //get vehicle ID frorm URL
+    const vehicleId = currentPage.split('/')[2];
+
+    //logout buttton
+    document.getElementById('logoutBtn').addEventListener('click', () =>{
+        localStorage.removeItem('token');
+        localStorage.removeItem('username');
+        window.location.href = '/login';
+    });
+
+    // Load the vehicle details when page loads
+    
+
+    //function to load vehicle details
+    async function loadVehicleDetails(){
+
+        //let's fetch all vehicle from API 
+        const response = await fetch (`${API_URL}/vehicles`, {
+            headers:{ 'Authorization': `Bearer ${token}`}
+        });
+
+        //let's convert it to js object 
+        const data = await response.json();
+
+
+        //find  the specific vehicle we want
+        const vehicle = data.vehicles.find(v => v.id == vehicleId);
+
+        if (vehicle) {
+            // Update the page title
+            document.getElementById('vehicleName').textContent = vehicle.name;
+            
+            // Build the details HTML
+            let detailsHTML = '';
+            
+            if (vehicle.registration) {
+                detailsHTML += `<p><strong>Registration:</strong> ${vehicle.registration}</p>`;
+            }
+            
+            detailsHTML += `<p><strong>Current Mileage:</strong> ${vehicle.mileage.toLocaleString()} miles</p>`;
+            
+            if (vehicle.year) {
+                detailsHTML += `<p><strong>Year:</strong> ${vehicle.year}</p>`;
+            }
+            
+            if (vehicle.fuel_type) {
+                detailsHTML += `<p><strong>Fuel Type:</strong> ${vehicle.fuel_type}</p>`;
+            }
+
+            document.getElementById('vehicleDetails').innerHTML = detailsHTML;
+    }
+
+}
+loadVehicleDetails();
+
+//functiion to load all the service logs for the vehicle
+    async function loadLogs(){
+
+        //get the div where we'll display the logs
+        const logsList = document.getElementById('logsList');
+
+        //show loading message while fetchiing
+        logsList.innerHTML = '<p class ="loading"> Loading logs...</p>';
+
+        //fetch logs from the API for this Vehicle
+        const response = await fetch (`${API_URL}/vehicles/${vehicleId}/logs`,{
+            headers:{'Authorization':`Bearer ${token}`}
+        });
+
+        const data = await response.json();
+
+        //check if request was succesful
+
+        if(response.ok){
+            const logs = data.logs;
+
+            //if not logs yet,
+            if (logs.length === 0) {
+                logsList.innerHTML = '<p class="empty-state">No service logs yet. Add your first one above!</p>';
+                return;  // Stop here
+            }
+
+            // Build HTML for each log
+            let logsHTML = '';
+                
+            for (let log of logs) {
+                logsHTML += `
+                    <div class="log-card">
+                        <div class="log-header">
+                            <h3>${formatLogType(log.log_type)}</h3>
+                            <span class="log-date">${formatDate(log.date)}</span>
+                        </div>
+                        <div class="log-details">
+                            <p><strong>Mileage:</strong> ${log.mileage.toLocaleString()} miles</p>
+                `;
+                
+                // Only show cost if it exists
+                if (log.cost) {
+                    logsHTML += `<p><strong>Cost:</strong> £${log.cost.toFixed(2)}</p>`;
+                }
+                
+                // Only show notes if they exist
+                if (log.notes) {
+                    logsHTML += `<p><strong>Notes:</strong> ${log.notes}</p>`;
+                }
+                
+                logsHTML += `
+                        </div>
+                        <button class="btn-delete-small" onclick="deleteLog(${log.id})">Delete</button>
+                    </div>
+                `;
+            }
+            
+            // Put all the logs on the page
+            logsList.innerHTML = logsHTML;
+            
+        } else {
+            // If something went wrong
+            logsList.innerHTML = '<p class="error">Failed to load logs</p>';
+        }
+    }
+
+    //helper functiion :Convert log_type to readabel text
+     // Example: "oil_change" becomes "Oil Change"
+
+    function formatLogType(type){
+        //replace underscores to spaces
+        let readable = type.replace(/_/g, ' ');
+
+        //capitaliza fiirst letter
+        readable = readable.replace (/\b\w/g, letter => letter.toUpperCase());
+
+        return readable;
+    }
+
+
+    function formatDate(dateString){
+        const date = new Date(dateString);
+
+        return date.toLocaleDateString('en-GB',{
+            day:'numeric',
+            month: 'short',
+            year: 'numeric'
+        });
+    }
+
+    loadLogs();
+    
+    // Get the form and message elements
+    const addLogForm = document.getElementById('addLogForm');
+    const addLogMessage = document.getElementById('addLogMessage');
+    
+    // When form is submitted
+    addLogForm.addEventListener('submit', async (e) => {
+        
+        // Prevent page refresh
+        e.preventDefault();
+        
+        // Get all the form values
+        const logType = document.getElementById('log-type').value;
+        const logDate = document.getElementById('log-date').value;
+        const logMileage = document.getElementById('log-mileage').value;
+        const logCost = document.getElementById('log-cost').value;
+        const logNotes = document.getElementById('log-notes').value;
+        
+        // Build the data object to send to API
+        const logData = {
+            log_type: logType,
+            date: logDate,
+            mileage: parseInt(logMileage)  // Convert to number
+        };
+        
+        // Only include cost if user entered one
+        if (logCost) {
+            logData.cost = parseFloat(logCost);  // Convert to decimal number
+        }
+        
+        // Only include notes if user entered any
+        if (logNotes) {
+            logData.notes = logNotes;
+        }
+        
+        // Send to API
+        try {
+            const response = await fetch(`${API_URL}/vehicles/${vehicleId}/logs`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(logData)
+            });
+            
+            const data = await response.json();
+            
+            // Check if it worked
+            if (response.ok) {
+                // Success! Show message
+                addLogMessage.textContent = '✓ ' + data.message;
+                addLogMessage.className = 'success';
+                
+                // Clear the form
+                addLogForm.reset();
+                
+                // Reload logs to show the new one
+                loadLogs();
+                
+            } else {
+                // Something went wrong
+                addLogMessage.textContent = '✗ ' + data.detail;
+                addLogMessage.className = 'error';
+            }
+            
+        } catch (error) {
+            // Network error
+            addLogMessage.textContent = '✗ Network error';
+            addLogMessage.className = 'error';
+            console.error('Error:', error);
+        }
+    });
+
+    //function to delete a log
+    window.deleteLog = async function(logId){
+
+        //Ask user to confirm
+        const confirmed = confirm ('delete this service log?');
+
+        //if they clicked "cancel", stop here
+        if(!confirmed){
+            return;
+        }
+
+        //send delete request to API
+        try{
+            const response = await fetch(`${API_URL}/logs/${logId}`, {
+                method : 'DELETE',
+                headers:{
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if(response.ok){
+                //success, reload logs to remove deleted one
+                loadLogs();
+
+            }else{
+                alert('failed to delete log');
+            }
+        }catch(error){
+            //network error
+            alert('Network error');
+            console.error('Error:', error);
+        }
+    }
+}
+
+

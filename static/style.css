@@ -430,3 +430,80 @@ body {
 .btn-delete:active {
     transform: translateY(0);
 }
+
+
+/* Back link */
+.back-link {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.back-link:hover {
+    text-decoration: underline;
+}
+
+/* Textarea */
+textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: inherit;
+    background: #f8fafc;
+    resize: vertical;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    background: white;
+}
+
+/* Log cards */
+.log-card {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 16px;
+    border-left: 4px solid #667eea;
+}
+
+.log-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.log-header h3 {
+    color: #1e293b;
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+.log-date {
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+.log-details p {
+    margin: 8px 0;
+    color: #475569;
+}
+
+.btn-delete-small {
+    background: #ef4444;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+.btn-delete-small:hover {
+    background: #dc2626;
+}
