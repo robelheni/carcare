@@ -335,6 +335,9 @@ if(currentPage.startsWith('/vehicle/')){
         const vehicle = data.vehicles.find(v => v.id == vehicleId);
 
         if (vehicle) {
+
+            //store vehicle data globally
+            currentVehicle = vehicle;
             // Update the page title
             document.getElementById('vehicleName').textContent = vehicle.name;
             
@@ -360,6 +363,118 @@ if(currentPage.startsWith('/vehicle/')){
 
 }
 loadVehicleDetails();
+
+//store vehicle data globally so we can access it
+let currentVehicle = null;
+
+//get edit button and form elements
+const editVehicleBtn = document.getElementById('editVehicleBtn');
+const vehicleDisplay = document.getElementById('vehicleDisplay');
+const vehicleEdit = document.getElementById('vehicleEdit');
+const cancelEditBtn = document.getElementById('cancelEditBtn');
+
+//when "edit vehicle button is clicked"
+
+editVehicleBtn.addEventListener('click', ()=>{
+    // Hide dispaly, show form
+    vehicleDisplay.style.display = 'none';
+    vehicleEdit.style.display ='block';
+    editVehicleBtn.style.display = 'none';
+
+    //pre form with current values
+    if(currentVehicle){
+        document.getElementById('edit-name').value = currentVehicle.name;
+        document.getElementById('edit-registration').value = currentVehicle.registration || '';
+        document.getElementById('edit-mileage').value = currentVehicle.mileage;
+        document.getElementById('edit-year').value = currentVehicle.year || '';
+        document.getElementById('edit-fuel-type').value = currentVehicle.fuel_type || '';
+    }
+});
+
+//when cancel button is clicked 
+cancelEditBtn.addEventListener('click', ()=>{
+    //show display, hide form
+    vehicleDisplay.style.Display = 'block';
+    vehicleEdit.style.display = 'none';
+    editVehicleBtn.style.display = 'block';
+});
+
+//Handle editt form submission
+const editVehicleForm = document.getElementById('editVehicleForm');
+const editVehicleMessage = document.getElementById('editVehicleMessage');
+
+editVehicleForm.addEventListener('submit' , async (e) => {
+    //prevent page refresh
+    e.preventDefault();
+
+    //get updated values from form
+    const name = document.getElementById('edit-name').value;
+    const registration = document.getElementById('edit-registration').value || null;
+    const mileage = parseInt(document.getElementById('edit-mileage').value);
+    const year = document.getElementById('edit-year').value ? parseInt(document.getElementById('edit-year').value) : null;
+    const fuelType = document.getElementById('edit-fuel-type').value || null;
+
+    //build data object
+    const updatedData = {
+        name:name,
+        registration: registration,
+        mileage: mileage,
+        year: year,
+        fuel_type: fuelType
+    };
+
+    //send PUT  request to backend
+    try{
+        const response = await fetch(`${API_URL}/vehicles/${vehicleId}` , {
+            method: 'PUT',
+            headers : {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+
+            body: JSON.stringify(updatedData)
+
+        });
+
+        const data = await response.json();
+
+        //check if it worked
+
+        if(response.ok){
+            //succes
+            editVehicleMessage.textContent = '✓ ' + data.message;
+            editVehicleMessage.className = 'success';
+
+            // Wait a moment, then switch back to display mode
+            setTimeout(() => {
+                // Hide form, show display
+                vehicleEdit.style.display = 'none';
+                vehicleDisplay.style.display = 'block';
+                editVehicleBtn.style.display = 'block';
+                
+                // Clear message
+                editVehicleMessage.textContent = '';
+                
+                // Reload vehicle details to show updated info
+                loadVehicleDetails();
+                
+            }, 1500);
+
+        }else {
+            // Error from backend
+            editVehicleMessage.textContent = '✗ ' + data.detail;
+            editVehicleMessage.className = 'error';
+        }
+    }catch (error) {
+        // Network error
+        editVehicleMessage.textContent = '✗ Network error';
+        editVehicleMessage.className = 'error';
+        console.error('Error:', error);
+    }
+
+
+});
+
 
 //functiion to load all the service logs for the vehicle
     async function loadLogs(){

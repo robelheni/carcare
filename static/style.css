@@ -507,3 +507,40 @@ textarea:focus {
 .btn-delete-small:hover {
     background: #dc2626;
 }
+
+
+/* Vehicle header with edit button */
+.vehicle-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.vehicle-header h2 {
+    margin: 0;
+    border: none;
+    padding: 0;
+}
+
+/* Form buttons side by side */
+.form-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.form-buttons button {
+    flex: 1;
+}
+
+.btn-secondary {
+    background: #64748b;
+}
+
+.btn-secondary:hover {
+    background: #475569;
+}
+
+#editVehicleMessage {
+    margin-top: 15px;
+}

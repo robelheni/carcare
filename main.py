@@ -472,6 +472,51 @@ def delete_log(
     }
 
 
+@app.put("/vehicles/{vehicle_id}")
+def update_vehicle(
+    vehicle_id: int,
+    vehicle_data: VehicleCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session=Depends(get_db)
+
+):
+
+    #find the vehicle
+    vehicle = db.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
+
+    #if it doesn't exist
+    if not vehicle:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = "Vehicle not found"
+        )
+
+    #cehck ownership
+    if vehicle.user_id != current_user.id:
+        raise HTTPException(
+            status_code = status.HTTP_403_FORBIDDEN,
+            detail = "you don't own this vehicle"
+        )
+
+    #update the fields
+    vehicle.name = vehicle_data.name
+    vehicle.registration = vehicle_data.registration
+    vehicle.mileage = vehicle_data.mileage
+    vehicle.year = vehicle_data.year
+    vehicle.fuel_type = vehicle_data.fuel_type
+
+    #save changes
+    db.commit()
+    db.refresh(vehicle)
+
+    return{
+        "message": "vehicle updated successfully",
+        "vehicle": VehicleResponse.from_orm(vehicle)
+    }
+
+
+
+
 @app.get("/")
 def read_root():
     return FileResponse('static/index.html')

@@ -21,9 +21,62 @@
         <main class="dashboard-main">
             
             <!-- Vehicle Info -->
+            <!-- Vehicle Info -->
             <section class="card">
-                <h2 id="vehicleName">Loading...</h2>
-                <div id="vehicleDetails"></div>
+                <div class="vehicle-header">
+                    <h2 id="vehicleName">Loading...</h2>
+                    <button id="editVehicleBtn" class="btn-secondary">Edit Vehicle</button>
+                </div>
+                
+                <!-- Display Mode -->
+                <div id="vehicleDisplay">
+                    <div id="vehicleDetails"></div>
+                </div>
+                
+                <!-- Edit Mode (hidden by default) -->
+                <div id="vehicleEdit" style="display: none;">
+                    <form id="editVehicleForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Vehicle Name *</label>
+                                <input type="text" id="edit-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Registration</label>
+                                <input type="text" id="edit-registration">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Current Mileage *</label>
+                                <input type="number" id="edit-mileage" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Year</label>
+                                <input type="number" id="edit-year" min="1900" max="2030">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Fuel Type</label>
+                            <select id="edit-fuel-type">
+                                <option value="">Select...</option>
+                                <option value="Petrol">Petrol</option>
+                                <option value="Diesel">Diesel</option>
+                                <option value="Electric">Electric</option>
+                                <option value="Hybrid">Hybrid</option>
+                            </select>
+                        </div>
+
+                        <div class="form-buttons">
+                            <button type="submit" class="btn-primary">Save Changes</button>
+                            <button type="button" id="cancelEditBtn" class="btn-secondary">Cancel</button>
+                        </div>
+                        
+                        <p id="editVehicleMessage"></p>
+                    </form>
+                </div>
             </section>
 
             <!-- Add Maintenance Log -->
