@@ -19,6 +19,41 @@
 
         <!-- Main Content -->
         <main class="dashboard-main">
+
+            <!-- NEW: Dashboard Stats -->
+            <section class="stats-container">
+                <div class="stat-card">
+                    <div class="stat-icon">🚗</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="totalVehicles">0</div>
+                        <div class="stat-label">Vehicles</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">🔧</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="totalLogs">0</div>
+                        <div class="stat-label">Services</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="totalSpent">£0.00</div>
+                        <div class="stat-label">Total Spent</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Recent Activity -->
+            <section class="card">
+                <h2>Recent Activity</h2>
+                <div id="recentActivity">
+                    <p class="loading">Loading...</p>
+                </div>
+            </section>
             
             <!-- Add Vehicle Section -->
             <section class="card">

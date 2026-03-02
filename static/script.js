@@ -137,6 +137,8 @@ if(currentPage === "/dashboard"){
         document.getElementById('username').textContent = username;
 
         loadVehicles();
+        loadDashboardStats();
+
     }
 
     //handle logout button
@@ -295,6 +297,76 @@ window.deleteVehicle = async function(vehicleId, vehicleName) {
     }
 }
 
+//function to load dashboard statistics
+async function loadDashboardStats(){
+    try{
+        //fecth stats from API
+        const response = await fetch(`${API_URL}/dashboard/stats`,{
+            headers: {'Authorization': `Bearer ${token}`}
+        });
+
+        const data  = await response.json();
+
+        if(response.ok){
+            document.getElementById('totalVehicles').textContent = data.total_vehicles;
+            document.getElementById('totalLogs').textContent = data.total_logs;
+            document.getElementById('totalSpent').textContent = `£${data.total_spent.toFixed(2)}`;
+
+
+            //update recent activity
+            const recentActivity = document.getElementById('recentActivity');
+
+            if(data.recent_activity.length === 0 ){
+                recentActivity.innerHTML = '<p class="empty-state">No recent activity</p>';
+
+            }else {
+                recentActivity.innerHTML = data.recent_activity.map(activity => `
+                    <div class="activity-item">
+                        <div class="activity-info">
+                            <div class="activity-type">${formatLogType(activity.log_type)}</div>
+                            <div class="activity-vehicle">${activity.vehicle_name}</div>
+                        </div>
+                        <div>
+                            <div class="activity-date">${formatActivityDate(activity.date)}</div>
+                            ${activity.cost ? `<div class="activity-cost">£${activity.cost.toFixed(2)}</div>` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+
+        }
+    }catch(error){
+        console.error('Error loading stats:' , error);
+    }
+
+    
+
+
+}
+
+
+//helper frunction to format an activity date
+function formatActivityDate(dateString){
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = now - date;
+    const diffDays = Math.floor (diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+
+}
+
+//helper function to format log type (reuse from vehicle page)
+function formatLogType(type){
+    let readable = type.replace(/_/g, ' ');
+    readable = readable.replace(/\b\w/g, letter => letter.toUpperCase());
+    return readable;
+}
 
 //VEHICLE DETSAIL PAGE
 

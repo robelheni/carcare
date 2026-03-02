@@ -142,6 +142,67 @@ class MaintenanceLogResponse(BaseModel):
 
     
 
+#dashboard statistics endpoints
+@app.get("/dashboard/stats")
+def get_dashboard_stats(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+
+    """
+    get dashboard statistica for current user
+
+    returns: 
+    -total vehicles
+    total maintenance logs
+    total spent
+    recent logs
+
+    """
+
+    #get all user's vehicles
+    vehicles = db.query(Vehicle).filter(Vehicle.user_id == current_user.id).all()
+    vehicle_ids = [v.id for v in vehicles]
+
+    #Count total logs
+    total_logs = db.query(MaintenanceLog).filter(
+        MaintenanceLog.vehicle_id.in_(vehicle_ids)
+    ).count()
+
+    #calculate total spent
+    from sqlalchemy import func
+
+    total_spent = db.query(func.sum(MaintenanceLog.cost)).filter(
+        MaintenanceLog.vehicle_id.in_(vehicle_ids)
+    ).scalar() or 0
+
+
+    #get recent logs( last 5)
+    recent_logs = db.query(MaintenanceLog).filter(
+        MaintenanceLog.vehicle_id.in_(vehicle_ids)
+    ).order_by(MaintenanceLog.date.desc()).limit(5).all()
+
+    #build response with vehicle names
+    recent_activity =[]
+    for log in recent_logs:
+        vehicle = db.query(Vehicle).filter(Vehicle.id ==log.vehicle_id).first()
+        recent_activity.append({
+            "log_type": log.log_type,
+            "vehicle_name":vehicle.name if vehicle else "unknown",
+            "date": log.date,
+            "cost": log.cost
+        })
+
+    return {
+        "total_vehicles": len(vehicles),
+        "total_logs": total_logs,
+        "total_spent": float(total_spent),
+        "recent_activity": recent_activity   
+        }
+
+
+
+
 
 
 #registration endpoint
