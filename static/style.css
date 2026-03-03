@@ -635,3 +635,29 @@ textarea:focus {
     font-weight: 600;
     color: #667eea;
 }
+
+/* Log actions (edit/delete buttons) */
+.log-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.btn-edit-log {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    flex: 1;
+}
+
+.btn-edit-log:hover {
+    background: #5568d3;
+}
+
+.btn-delete-small {
+    flex: 1;
+}

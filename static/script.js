@@ -577,44 +577,77 @@ editVehicleForm.addEventListener('submit' , async (e) => {
 
             // Build HTML for each log
             let logsHTML = '';
-                
-            for (let log of logs) {
-                logsHTML += `
-                    <div class="log-card">
+        
+        for (let log of logs) {
+            logsHTML += `
+                <div class="log-card" id="log-${log.id}">
+                    <!-- Display Mode -->
+                    <div class="log-display" id="log-display-${log.id}">
                         <div class="log-header">
                             <h3>${formatLogType(log.log_type)}</h3>
                             <span class="log-date">${formatDate(log.date)}</span>
                         </div>
                         <div class="log-details">
                             <p><strong>Mileage:</strong> ${log.mileage.toLocaleString()} miles</p>
-                `;
-                
-                // Only show cost if it exists
-                if (log.cost) {
-                    logsHTML += `<p><strong>Cost:</strong> £${log.cost.toFixed(2)}</p>`;
-                }
-                
-                // Only show notes if they exist
-                if (log.notes) {
-                    logsHTML += `<p><strong>Notes:</strong> ${log.notes}</p>`;
-                }
-                
-                logsHTML += `
+                            ${log.cost ? `<p><strong>Cost:</strong> £${log.cost.toFixed(2)}</p>` : ''}
+                            ${log.notes ? `<p><strong>Notes:</strong> ${log.notes}</p>` : ''}
                         </div>
-                        <button class="btn-delete-small" onclick="deleteLog(${log.id})">Delete</button>
+                        <div class="log-actions">
+                            <button class="btn-edit-log" onclick="editLog(${log.id})">Edit</button>
+                            <button class="btn-delete-small" onclick="deleteLog(${log.id})">Delete</button>
+                        </div>
                     </div>
-                `;
-            }
-            
-            // Put all the logs on the page
-            logsList.innerHTML = logsHTML;
-            
-        } else {
-            // If something went wrong
-            logsList.innerHTML = '<p class="error">Failed to load logs</p>';
+                    
+                    <!-- Edit Mode (hidden) -->
+                    <div class="log-edit" id="log-edit-${log.id}" style="display: none;">
+                        <form onsubmit="saveLog(event, ${log.id})">
+                            <div class="form-group">
+                                <label>Service Type</label>
+                                <select id="edit-log-type-${log.id}" required>
+                                    <option value="oil_change" ${log.log_type === 'oil_change' ? 'selected' : ''}>Oil Change</option>
+                                    <option value="brake_service" ${log.log_type === 'brake_service' ? 'selected' : ''}>Brake Service</option>
+                                    <option value="mot" ${log.log_type === 'mot' ? 'selected' : ''}>MOT</option>
+                                    <option value="tire_rotation" ${log.log_type === 'tire_rotation' ? 'selected' : ''}>Tire Rotation</option>
+                                    <option value="general_service" ${log.log_type === 'general_service' ? 'selected' : ''}>General Service</option>
+                                    <option value="repair" ${log.log_type === 'repair' ? 'selected' : ''}>Repair</option>
+                                    <option value="other" ${log.log_type === 'other' ? 'selected' : ''}>Other</option>
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Date</label>
+                                    <input type="date" id="edit-log-date-${log.id}" value="${log.date}" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Mileage</label>
+                                    <input type="number" id="edit-log-mileage-${log.id}" value="${log.mileage}" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Cost</label>
+                                    <input type="number" id="edit-log-cost-${log.id}" value="${log.cost || ''}" step="0.01">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Notes</label>
+                                <textarea id="edit-log-notes-${log.id}" rows="2">${log.notes || ''}</textarea>
+                            </div>
+                            <div class="form-buttons">
+                                <button type="submit" class="btn-primary">Save</button>
+                                <button type="button" class="btn-secondary" onclick="cancelEditLog(${log.id})">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
         }
+        
+        logsList.innerHTML = logsHTML;
+    } else {
+        logsList.innerHTML = '<p class="error">Failed to load logs</p>';
     }
-
+}
     //helper functiion :Convert log_type to readabel text
      // Example: "oil_change" becomes "Oil Change"
 
@@ -747,6 +780,63 @@ editVehicleForm.addEventListener('submit' , async (e) => {
             console.error('Error:', error);
         }
     }
+
+
+
+//function to show edit for a log
+// Function to show edit form for a log
+window.editLog = function(logId) {
+    // Hide display, show edit form
+    document.getElementById(`log-display-${logId}`).style.display = 'none';
+    document.getElementById(`log-edit-${logId}`).style.display = 'block';
 }
 
+// Function to cancel editing
+window.cancelEditLog = function(logId) {
+    // Show display, hide edit form
+    document.getElementById(`log-display-${logId}`).style.display = 'block';
+    document.getElementById(`log-edit-${logId}`).style.display = 'none';
+}
 
+// Function to save edited log
+window.saveLog = async function(event, logId) {
+    event.preventDefault();
+    
+    // Get updated values
+    const logType = document.getElementById(`edit-log-type-${logId}`).value;
+    const logDate = document.getElementById(`edit-log-date-${logId}`).value;
+    const logMileage = parseInt(document.getElementById(`edit-log-mileage-${logId}`).value);
+    const logCost = document.getElementById(`edit-log-cost-${logId}`).value;
+    const logNotes = document.getElementById(`edit-log-notes-${logId}`).value;
+    
+    const updatedData = {
+        log_type: logType,
+        date: logDate,
+        mileage: logMileage,
+        cost: logCost ? parseFloat(logCost) : null,
+        notes: logNotes || null
+    };
+    
+    try {
+        const response = await fetch(`${API_URL}/logs/${logId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(updatedData)
+        });
+        
+        if (response.ok) {
+            // Reload logs to show updated version
+            loadLogs();
+        } else {
+            alert('Failed to update log');
+        }
+    } catch (error) {
+        alert('Network error');
+        console.error('Error:', error);
+    }
+}
+
+}

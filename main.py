@@ -514,6 +514,22 @@ def delete_log(
             detail = "Log not found"
         )
 
+    #pdate fields
+    log.log_type = log_data.log_type
+    log.date = log_date.date
+    log.mileage = log_data.mileage
+    log.cost = log_data.cost
+    log.notes = log_data.notes
+
+    #save
+    db.commit()
+    db.refresh(log)
+
+    return {
+        "message": "log updated succesfully",
+        "log" : MaintenanceLogResponse.from_orm(log)
+    }
+
     #find vehicle to check ownership
     vehicle = db.query(Vehicle).filter(Vehicle.id == log.vehicle_id).first()
 
@@ -532,6 +548,50 @@ def delete_log(
         "message": "Log deleted successfully"
     }
 
+@app.put("/logs/{log_id}")
+def update_log(
+    log_id: int,
+    log_data: MaintenanceLogCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Update a maintenance log.
+    """
+    
+    # Find log
+    log = db.query(MaintenanceLog).filter(MaintenanceLog.id == log_id).first()
+    
+    if not log:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Log not found"
+        )
+    
+    # Find vehicle to check ownership
+    vehicle = db.query(Vehicle).filter(Vehicle.id == log.vehicle_id).first()
+    
+    if vehicle.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't own this log"
+        )
+    
+    # Update fields
+    log.log_type = log_data.log_type
+    log.date = log_data.date
+    log.mileage = log_data.mileage
+    log.cost = log_data.cost
+    log.notes = log_data.notes
+    
+    # Save
+    db.commit()
+    db.refresh(log)
+    
+    return {
+        "message": "Log updated successfully",
+        "log": MaintenanceLogResponse.from_orm(log)
+    }
 
 @app.put("/vehicles/{vehicle_id}")
 def update_vehicle(
