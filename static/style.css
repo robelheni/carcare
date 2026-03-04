@@ -255,11 +255,19 @@ body {
     color: #1e293b;
 }
 
-#logoutBtn {
+.logoutBtn {
     background: #ef4444;
     padding: 10px 20px;
     width: auto;
     font-size: 0.95rem;
+}
+
+.editVehicleBtn{
+    background: #ef4444;
+    padding: 10px 20px;
+    width: auto;
+    font-size: 0.95rem;
+    
 }
 
 #logoutBtn:hover {
@@ -535,6 +543,10 @@ textarea:focus {
 
 .btn-secondary {
     background: #64748b;
+    padding: 10px 20px;
+    width: auto;
+    font-size: 0.95rem;
+
 }
 
 .btn-secondary:hover {
