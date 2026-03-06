@@ -673,6 +673,26 @@ editVehicleForm.addEventListener('submit' , async (e) => {
     }
 
     loadLogs();
+    loadReminders();
+
+    //get reminder from elements
+    const showAddReminderBtn = document.getElementById('showAddReminderBtn');
+    const addReminderForm = document.getElementById('addReminderForm');
+    const cancelReminderBtn = document.getElementById('cancelRemindeerBtn');
+
+
+    //Show reminder form when button clicked
+    showAddReminderBtn.addEventListener('click', () =>{
+        addReminderForm.style.display ='block';
+        showAddReminderBtn.style.display = 'none';
+    });
+
+    //Hide reminder form when button clicked
+    cancelReminderBtn.addEventListener('click', ()=>{
+        addReminderForm.style.display = 'none';
+        showAddReminderBtn.style.display = 'block';
+        document.getElementById('reminderForm').reset();
+    })
     
     // Get the form and message elements
     const addLogForm = document.getElementById('addLogForm');
@@ -785,58 +805,123 @@ editVehicleForm.addEventListener('submit' , async (e) => {
 
 //function to show edit for a log
 // Function to show edit form for a log
-window.editLog = function(logId) {
-    // Hide display, show edit form
-    document.getElementById(`log-display-${logId}`).style.display = 'none';
-    document.getElementById(`log-edit-${logId}`).style.display = 'block';
-}
+    window.editLog = function(logId) {
+        // Hide display, show edit form
+        document.getElementById(`log-display-${logId}`).style.display = 'none';
+        document.getElementById(`log-edit-${logId}`).style.display = 'block';
+    }
 
-// Function to cancel editing
-window.cancelEditLog = function(logId) {
-    // Show display, hide edit form
-    document.getElementById(`log-display-${logId}`).style.display = 'block';
-    document.getElementById(`log-edit-${logId}`).style.display = 'none';
-}
+    // Function to cancel editing
+    window.cancelEditLog = function(logId) {
+        // Show display, hide edit form
+        document.getElementById(`log-display-${logId}`).style.display = 'block';
+        document.getElementById(`log-edit-${logId}`).style.display = 'none';
+    }
 
-// Function to save edited log
-window.saveLog = async function(event, logId) {
-    event.preventDefault();
-    
-    // Get updated values
-    const logType = document.getElementById(`edit-log-type-${logId}`).value;
-    const logDate = document.getElementById(`edit-log-date-${logId}`).value;
-    const logMileage = parseInt(document.getElementById(`edit-log-mileage-${logId}`).value);
-    const logCost = document.getElementById(`edit-log-cost-${logId}`).value;
-    const logNotes = document.getElementById(`edit-log-notes-${logId}`).value;
-    
-    const updatedData = {
-        log_type: logType,
-        date: logDate,
-        mileage: logMileage,
-        cost: logCost ? parseFloat(logCost) : null,
-        notes: logNotes || null
-    };
-    
-    try {
-        const response = await fetch(`${API_URL}/logs/${logId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(updatedData)
-        });
+    // Function to save edited log
+    window.saveLog = async function(event, logId) {
+        event.preventDefault();
         
-        if (response.ok) {
-            // Reload logs to show updated version
-            loadLogs();
-        } else {
-            alert('Failed to update log');
+        // Get updated values
+        const logType = document.getElementById(`edit-log-type-${logId}`).value;
+        const logDate = document.getElementById(`edit-log-date-${logId}`).value;
+        const logMileage = parseInt(document.getElementById(`edit-log-mileage-${logId}`).value);
+        const logCost = document.getElementById(`edit-log-cost-${logId}`).value;
+        const logNotes = document.getElementById(`edit-log-notes-${logId}`).value;
+        
+        const updatedData = {
+            log_type: logType,
+            date: logDate,
+            mileage: logMileage,
+            cost: logCost ? parseFloat(logCost) : null,
+            notes: logNotes || null
+        };
+        
+        try {
+            const response = await fetch(`${API_URL}/logs/${logId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(updatedData)
+            });
+            
+            if (response.ok) {
+                // Reload logs to show updated version
+                loadLogs();
+            } else {
+                alert('Failed to update log');
+            }
+        } catch (error) {
+            alert('Network error');
+            console.error('Error:', error);
         }
-    } catch (error) {
-        alert('Network error');
+    }
+
+
+    //funcion to load reminders
+    async function loadReminders(){
+        const reminderList = document.getElementById('reminderList');
+
+        //show loading message
+        reminderList.innerHTML = '<p class = "loading"> Loading reminders...</p>'
+    }
+
+
+    try{
+        //fetching reminders from API
+        const response = await fetch(`${API_URL}/vehicles/${vehicleId}reminders`,{
+            headers:{'Authorization': `Bearer ${token}`}
+        });
+
+        const data = await response.json();
+
+        if(response.ok){
+            const reminders = data.reminders;
+
+            //if no reminders
+            if(response.length ===0){
+                remindersList.innerHTML ='<p class ="empty-state">No reminders set. Click "Add Reminder" above to create one!</p>'
+                return;
+            }
+
+            //building HTML for each reminder
+            let reminderHTML = '';
+
+            for(let reminder of reminders){
+                const status = getReminderStatus(reminder, currentVehicle);
+
+                remindersHTML += `
+                    <div class="reminder-card ${reminder.is_completed ? 'completed' : ''} ${status.class}">
+                        <div class="reminder-header">
+                            <h3>${formatLogType(reminder.reminder_type)}</h3>
+                            <span class="reminder-status ${status.badgeClass}">${status.text}</span>
+                        </div>
+                        <div class="reminder-details">
+                            ${reminder.due_date ? `<p><strong>Due Date:</strong> ${formatDate(reminder.due_date)}</p>` : ''}
+                            ${reminder.due_mileage ? `<p><strong>Due Mileage:</strong> ${reminder.due_mileage.toLocaleString()} miles</p>` : ''}
+                            ${reminder.notes ? `<p><strong>Notes:</strong> ${reminder.notes}</p>` : ''}
+                        </div>
+                        <div class="reminder-actions">
+                            <button class="btn-complete" onclick="completeReminder(${reminder.id})" ${reminder.is_completed ? 'disabled' : ''}>
+                                ${reminder.is_completed ? '✓ Completed' : 'Mark Complete'}
+                            </button>
+                            <button class="btn-delete-small" onclick="deleteReminder(${reminder.id})">Delete</button>
+                        </div>
+                    </div>
+                `;
+            }
+            reminderList.innerHTML  = remindersHTML;
+        }else {
+            remindersList,innerHTML = '<p class="error">Failed to load reminders</p>';
+        }
+
+    }catch (error){
+        remindersList.innerHTML ='<p class = "error"> Network error</p>';
         console.error('Error:', error);
     }
+    
 }
 
-}
+

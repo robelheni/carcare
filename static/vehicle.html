@@ -133,6 +133,69 @@
                     <p class="loading">Loading logs...</p>
                 </div>
             </section>
+
+            <!--Reminders Section -->
+            <section class="card">
+                <h2>Service Reminders</h2>
+                
+                <!-- Reminder Button -->
+                <button id="showAddReminderBtn" class="btn-primary" style="margin-bottom: 20px;">
+                    + Add Reminder
+                </button>
+                
+                <!-- Reminder Form (hidden by default) -->
+                <div id="addReminderForm" style="display: none; margin-bottom: 30px; padding: 20px; background: #f8fafc; border-radius: 8px;">
+                    <h3 style="margin-bottom: 15px;">Create New Reminder</h3>
+                    <form id="reminderForm">
+                        <div class="form-group">
+                            <label>Reminder Type *</label>
+                            <select id="reminder-type" required>
+                                <option value="">Select...</option>
+                                <option value="service">General Service</option>
+                                <option value="mot">MOT</option>
+                                <option value="oil_change">Oil Change</option>
+                                <option value="brake_check">Brake Check</option>
+                                <option value="tire_rotation">Tire Rotation</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Due Date</label>
+                                <input type="date" id="reminder-date">
+                                <small style="color: #64748b;">When is this service due?</small>
+                            </div>
+                            <div class="form-group">
+                                <label>Due Mileage</label>
+                                <input type="number" id="reminder-mileage" placeholder="e.g. 50000">
+                                <small style="color: #64748b;">Or at what mileage?</small>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Notes</label>
+                            <textarea id="reminder-notes" rows="2" placeholder="Any additional details..."></textarea>
+                        </div>
+
+                        <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 15px;">
+                            * You must set either a due date or due mileage (or both)
+                        </p>
+
+                        <div class="form-buttons">
+                            <button type="submit" class="btn-primary">Create Reminder</button>
+                            <button type="button" id="cancelReminderBtn" class="btn-secondary">Cancel</button>
+                        </div>
+                        
+                        <p id="addReminderMessage"></p>
+                    </form>
+                </div>
+                
+                <!-- Reminders List -->
+                <div id="remindersList">
+                    <p class="loading">Loading reminders...</p>
+                </div>
+            </section>
         </main>
     </div>
 
