@@ -10,7 +10,7 @@ from pydantic import BaseModel, EmailStr, ConfigDict
 from sqlalchemy.orm import Session
 from datetime import datetime, date
 
-from database import SessionLocal, User, Vehicle, MaintenanceLog
+from database import SessionLocal, User, Vehicle, MaintenanceLog, Reminder
 from auth import hash_password, verify_password, create_access_token, verify_token
 
 
@@ -139,6 +139,27 @@ class MaintenanceLogResponse(BaseModel):
     log_type: str
 
     model_config = ConfigDict(from_attributes=True)
+
+#what we expect form the user
+class ReminderCreate(BaseModel):
+    reminder_type: str
+    due_date: date = None
+    due_mileage: int = None
+    notes: str =None
+
+#what we send back to the user
+class RemindeResponse(BaseModel):
+    id: int
+    vehicle_id: int
+    reminder_type: str
+    due_date: date = None
+    due_mileage: int = None
+    is_completed: bool
+    notes : str = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes = True)
+
 
     
 
@@ -636,7 +657,170 @@ def update_vehicle(
     }
 
 
+@app.post("vehicles/{vehilce_id}/reminders", status_code = status.HTTP_201_CREATED)
+def add_reminder(
+    vehicle_id: int,
+    reminder_data: ReminderCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
 
+    """
+
+    add a reminder tto a vehilce
+
+    steps:
+    1. finde a vehicle
+    2. cheeck user owns itt
+    3. validate: at least one of due_date or due_mileage must be set
+    3. create reminder
+    5. save to database
+
+    """
+    #find a vehicle
+    vehicle = db.query(Vehicle).filter(Vehicle.id ==vehicle_id).first()
+
+    if not vehicle:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = "vehicle not found"
+        )
+
+    if vehicle.user_id != current_user.id:
+        raise HTTPException(
+            status_code = status.HTTP_403_FORBIDDEN,
+            detail = "you don't own this vehicle"
+        )
+
+    if not reminder_data.due_date and not reminder_data.due_mileage:
+        raise HTTPException(
+            status_code = status.HTTP_400_BAD_REQUEST,
+            detail = "must set either due_date or due_mileage(or both)"
+        )
+    #create reminder
+    new_reminder = Reminder(
+        vehicle_id = vehilce_id,
+        reminder_type = reminder_data.reminder_type,
+        due_date= reminder_data.due_date,
+        due_mileage = reminder_data.due_mileage,
+        notes = reminder_data.notes
+
+    )
+
+    db.add(new_reminder)
+    db.commit()
+    db.refresh(new_reminder)
+
+    return {
+        "message": "Reminder created succesfully",
+        "reminder": ReminderResponse.from_orm(new_reminder)
+    }
+
+
+@app.get("/vehicles/{vehicle_id}/reminders")
+def get_vehicle_reminders(
+    vehicle_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+
+    #find vehicle
+    vehicle = db.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
+
+    if not vehicle:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = "vehicle not found"
+        )
+
+    #check ownership
+    if vehicle.user_id != current_user.id:
+        raise HTTPException(
+            status_code = status.HTTP_403_FORBIDDEN,
+            detail = "you donot own this vehicle"
+        )
+    #get reminders, orderd by due date
+    reminders = db.query(Reminder). filter(Reminder.vehilcle_id == vehicle_id).order_by(
+        Reminder.is_completed,
+        Reminder.due_date.asc().nullslast()
+    ).all()
+
+    return {
+        "reminders": [ReminderResponse.from_orm(r) for r in reminders]
+    }
+
+@app.put("/reminders/{reminder_id}/complete")
+def complete_reminder(
+    reminder_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+
+    """
+    Mark a reminder as completed
+
+    User did the service , so we mark it done.
+    we don't delete it - keeps history
+    """
+
+    #find reminder
+    reminder = db.query(Reminder).filter(Reminder.id == reminder_id).first()
+
+    if not reminder:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = "Reminder not found"
+        )
+
+    #check ownershiup
+    vehicle = db.query(Vehicle).filter(Vehicle.id == reminder.vehicle_id).first()
+    if vehicle.user_id != current_user.id:
+        raise HTTPException(
+            status_code = status.HTTP_403_FORBIDDEN,
+            detail = "you dont own this reminder"
+        )
+
+    # mark as completed
+    reminder.is_completed = True
+    db.commit()
+
+    return {
+        "message": "reminder marked as completed"
+    }
+
+@app.delete("/reminders/{reminder_id}")
+def delete_reminder(
+    reminder_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+
+):
+
+    #fimnd reminder
+
+    reminder = db.query(Reminder).filter(Reminder.id == reminder_id).filter()
+
+    if not reminder:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = "reminder not found"
+        )
+
+    #check ownership
+    vehicle  = db.query(Vehicle).filter(Vehicle.id == reminder.vehicle_id).first()
+    if vehicle.user_id != current_user.id:
+        raise HTTPException(
+            status_code = status.HTTP_403_FORBIDDEN,
+            detail = "you dont own this vehicle"
+        )
+
+    db.delete(reminder)
+    db.commit()
+
+
+    return {
+        "message": "reminder deleted successfully"
+    }
 
 @app.get("/")
 def read_root():

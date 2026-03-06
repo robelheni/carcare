@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, DateTime,Date, ForeignKey,Numeric
+from sqlalchemy import create_engine, Column, Integer, String, DateTime,Date, ForeignKey,Numeric, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
@@ -45,8 +45,13 @@ class Vehicle(Base):
     #relationship with a user
     user = relationship("User", back_populates="vehicles")
 
-    # NEW: Relationship to logs
+    #  Relationship to logs
     logs = relationship("MaintenanceLog", back_populates="vehicle", cascade="all, delete-orphan")
+
+    #Relationship to remindeers
+    reminders = relationship("Reminder", back_populates = "vehicle", cascade="all, delete-orphan")
+
+
 
 
 class MaintenanceLog(Base):
@@ -63,3 +68,18 @@ class MaintenanceLog(Base):
     
     # Relationship to vehicle
     vehicle = relationship("Vehicle", back_populates="logs")
+
+
+class Reminder(Base):
+    __tablename__ = "reminders"
+
+    id = Column(Integer, primary_key =True)
+    vehicle_id = Column(Integer, ForeignKey("vehicles.id"))
+    reminder_type = Column(String(50))
+    due_date = Column(Date, nullable =True)
+    due_mileage = Column(Integer, nullable= True)
+    is_completed = Column(Boolean, nullable=True)
+    notes = Column(String(500), nullable = True)
+    created_at = Column(DateTime, default = datetime.utcnow)
+
+    vehicle = relationship("Vehicle", back_populates = "reminders")
