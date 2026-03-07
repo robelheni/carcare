@@ -4,6 +4,7 @@ from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer,HTTPAuthorizationCredentials
 from fastapi import Security
+from typing import Optional
 
 
 from pydantic import BaseModel, EmailStr, ConfigDict
@@ -143,22 +144,22 @@ class MaintenanceLogResponse(BaseModel):
 #what we expect form the user
 class ReminderCreate(BaseModel):
     reminder_type: str
-    due_date: date = None
-    due_mileage: int = None
-    notes: str =None
+    due_date: Optional[date] = None
+    due_mileage: Optional[int] = None
+    notes: Optional[str] = None
 
 #what we send back to the user
-class RemindeResponse(BaseModel):
+class ReminderResponse(BaseModel):
     id: int
     vehicle_id: int
     reminder_type: str
-    due_date: date = None
-    due_mileage: int = None
-    is_completed: bool
-    notes : str = None
+    due_date: Optional[date] = None
+    due_mileage: Optional[int] = None
+    is_completed: Optional[bool] = None
+    notes: Optional[str] = None
     created_at: datetime
 
-    model_config = ConfigDict(from_attributes = True)
+    model_config = ConfigDict(from_attributes=True)
 
 
     
@@ -535,21 +536,7 @@ def delete_log(
             detail = "Log not found"
         )
 
-    #pdate fields
-    log.log_type = log_data.log_type
-    log.date = log_date.date
-    log.mileage = log_data.mileage
-    log.cost = log_data.cost
-    log.notes = log_data.notes
 
-    #save
-    db.commit()
-    db.refresh(log)
-
-    return {
-        "message": "log updated succesfully",
-        "log" : MaintenanceLogResponse.from_orm(log)
-    }
 
     #find vehicle to check ownership
     vehicle = db.query(Vehicle).filter(Vehicle.id == log.vehicle_id).first()
@@ -657,28 +644,26 @@ def update_vehicle(
     }
 
 
-@app.post("vehicles/{vehilce_id}/reminders", status_code = status.HTTP_201_CREATED)
+@app.post("/vehicles/{vehicle_id}/reminders", status_code = status.HTTP_201_CREATED)
 def add_reminder(
     vehicle_id: int,
     reminder_data: ReminderCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-
     """
-
-    add a reminder tto a vehilce
-
-    steps:
-    1. finde a vehicle
-    2. cheeck user owns itt
-    3. validate: at least one of due_date or due_mileage must be set
-    3. create reminder
-    5. save to database
-
+    Add a reminder to a vehicle.
+    
+    Steps:
+    1. Find vehicle
+    2. Check user owns it
+    3. Validate: at least one of due_date or due_mileage must be set
+    4. Create reminder
+    5. Save to database
     """
-    #find a vehicle
-    vehicle = db.query(Vehicle).filter(Vehicle.id ==vehicle_id).first()
+    
+    # Find vehicle
+    vehicle = db.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
 
     if not vehicle:
         raise HTTPException(
@@ -686,25 +671,27 @@ def add_reminder(
             detail = "vehicle not found"
         )
 
+    # Check ownership
     if vehicle.user_id != current_user.id:
         raise HTTPException(
             status_code = status.HTTP_403_FORBIDDEN,
             detail = "you don't own this vehicle"
         )
 
+    # Validate: at least one trigger must be set
     if not reminder_data.due_date and not reminder_data.due_mileage:
         raise HTTPException(
             status_code = status.HTTP_400_BAD_REQUEST,
-            detail = "must set either due_date or due_mileage(or both)"
+            detail = "must set either due_date or due_mileage (or both)"
         )
-    #create reminder
+
+    # Create reminder (Pydantic already converted due_date for us!)
     new_reminder = Reminder(
-        vehicle_id = vehilce_id,
+        vehicle_id = vehicle_id,
         reminder_type = reminder_data.reminder_type,
-        due_date= reminder_data.due_date,
+        due_date = reminder_data.due_date,  # Already a date object
         due_mileage = reminder_data.due_mileage,
         notes = reminder_data.notes
-
     )
 
     db.add(new_reminder)
@@ -712,7 +699,7 @@ def add_reminder(
     db.refresh(new_reminder)
 
     return {
-        "message": "Reminder created succesfully",
+        "message": "Reminder created successfully",
         "reminder": ReminderResponse.from_orm(new_reminder)
     }
 
@@ -740,7 +727,7 @@ def get_vehicle_reminders(
             detail = "you donot own this vehicle"
         )
     #get reminders, orderd by due date
-    reminders = db.query(Reminder). filter(Reminder.vehilcle_id == vehicle_id).order_by(
+    reminders = db.query(Reminder).filter(Reminder.vehicle_id == vehicle_id).order_by(
         Reminder.is_completed,
         Reminder.due_date.asc().nullslast()
     ).all()
@@ -798,7 +785,7 @@ def delete_reminder(
 
     #fimnd reminder
 
-    reminder = db.query(Reminder).filter(Reminder.id == reminder_id).filter()
+    reminder = db.query(Reminder).filter(Reminder.id == reminder_id).first()
 
     if not reminder:
         raise HTTPException(

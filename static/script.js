@@ -1,6 +1,6 @@
 //API URL -where your server lives
 const API_URL = 'http://127.0.0.1:8000';
-const token = localStorage.getItem('token');
+
 
 //figure out which page we are on
 const currentPage = window.location.pathname;
@@ -10,7 +10,7 @@ if (currentPage==='/'){
     //get the form to handle a submission without refreshing the whole page
     const registerForm = document.getElementById('registerForm');
     const messageEl = document.getElementById('message');
-
+    
 
     //handle the submission
 
@@ -74,6 +74,7 @@ if (currentPage==='/'){
 if(currentPage === "/login"){
     const loginForm = document.getElementById('loginForm');
     const loginMessage = document.getElementById('loginMessage');
+    
 
     loginForm.addEventListener('submit', async(e) =>{
         e.preventDefault();
@@ -130,6 +131,7 @@ if(currentPage === "/dashboard"){
     //check if user is logged in
     const token = localStorage.getItem('token');
     const username = localStorage.getItem('username');
+    
 
     if (!token || !username){
         window.location.href = '/login';
@@ -208,6 +210,7 @@ if(currentPage === "/dashboard"){
 
 // Function to load vehicles
 async function loadVehicles() {
+    const token = localStorage.getItem('token'); 
     const vehiclesList = document.getElementById('vehiclesList');
     
     try {
@@ -254,6 +257,7 @@ async function loadVehicles() {
 
 // Function to delete vehicle
 window.deleteVehicle = async function(vehicleId, vehicleName) {
+    const token = localStorage.getItem('token'); 
     // Confirm before deleting
     if (!confirm(`Are you sure you want to delete "${vehicleName}"? This cannot be undone.`)) {
         return;
@@ -299,6 +303,7 @@ window.deleteVehicle = async function(vehicleId, vehicleName) {
 
 //function to load dashboard statistics
 async function loadDashboardStats(){
+    const token = localStorage.getItem('token'); 
     try{
         //fecth stats from API
         const response = await fetch(`${API_URL}/dashboard/stats`,{
@@ -466,7 +471,7 @@ editVehicleBtn.addEventListener('click', ()=>{
 //when cancel button is clicked 
 cancelEditBtn.addEventListener('click', ()=>{
     //show display, hide form
-    vehicleDisplay.style.Display = 'block';
+    vehicleDisplay.style.display = 'block';
     vehicleEdit.style.display = 'none';
     editVehicleBtn.style.display = 'block';
 });
@@ -678,7 +683,7 @@ editVehicleForm.addEventListener('submit' , async (e) => {
     //get reminder from elements
     const showAddReminderBtn = document.getElementById('showAddReminderBtn');
     const addReminderForm = document.getElementById('addReminderForm');
-    const cancelReminderBtn = document.getElementById('cancelRemindeerBtn');
+    const cancelReminderBtn = document.getElementById('cancelReminderBtn');
 
 
     //Show reminder form when button clicked
@@ -862,16 +867,16 @@ editVehicleForm.addEventListener('submit' , async (e) => {
 
     //funcion to load reminders
     async function loadReminders(){
-        const reminderList = document.getElementById('reminderList');
+        const remindersList = document.getElementById('remindersList');
 
         //show loading message
-        reminderList.innerHTML = '<p class = "loading"> Loading reminders...</p>'
-    }
+        remindersList.innerHTML = '<p class = "loading"> Loading reminders...</p>'
+    
 
 
     try{
         //fetching reminders from API
-        const response = await fetch(`${API_URL}/vehicles/${vehicleId}reminders`,{
+        const response = await fetch(`${API_URL}/vehicles/${vehicleId}/reminders`,{
             headers:{'Authorization': `Bearer ${token}`}
         });
 
@@ -881,13 +886,13 @@ editVehicleForm.addEventListener('submit' , async (e) => {
             const reminders = data.reminders;
 
             //if no reminders
-            if(response.length ===0){
+            if(reminders.length ===0){
                 remindersList.innerHTML ='<p class ="empty-state">No reminders set. Click "Add Reminder" above to create one!</p>'
                 return;
             }
 
             //building HTML for each reminder
-            let reminderHTML = '';
+            let remindersHTML = '';
 
             for(let reminder of reminders){
                 const status = getReminderStatus(reminder, currentVehicle);
@@ -912,15 +917,208 @@ editVehicleForm.addEventListener('submit' , async (e) => {
                     </div>
                 `;
             }
-            reminderList.innerHTML  = remindersHTML;
+            remindersList.innerHTML  = remindersHTML;
         }else {
-            remindersList,innerHTML = '<p class="error">Failed to load reminders</p>';
+            remindersList.innerHTML = '<p class="error">Failed to load reminders</p>';
         }
 
     }catch (error){
         remindersList.innerHTML ='<p class = "error"> Network error</p>';
         console.error('Error:', error);
     }
+}
+
+
+    function getReminderStatus(reminder, vehicle) {
+        //if already completted
+        if(reminder.is_completed){
+            return {
+                text:'completed',
+                badgeClass: 'status-completed',
+                class: ''
+            };
+        }
+    
+    
+        const today = new Date();
+        today.setHours(0,0,0,0); //reset time to midnight for accurate comparsion
+
+        let isOverdue = false;
+        let isDueSoon = false;
+
+        //check date-based overdue/due soon
+        if(reminder.due_date){
+            const dueDate = new Date(reminder.due_date);
+            const daysDiff = Math.floor((dueDate - today)/(1000*60*60*24));
+
+            if (daysDiff <0){
+                isOverdue = true;
+            } else if (daysDiff <=30){
+                isDueSoon =true;
+            }
+        }
+
+
+        //check mileage - based overdue/due soon
+        if(reminder.due_mileage && vehicle){
+            const currentMileage = vehicle.mileage;
+            const mileageDiff = reminder.due_mileage - currentMileage;
+
+            if (mileageDiff <=0){
+                isOverdue = true;
+            } else if(mileageDiff <= 1000){
+                isDueSoon = true;
+            }
+        }
+
+        //return status
+        if (isOverdue){
+            return {
+                text:'Overdue!',
+                badgeClass:'status-overdue',
+                class: ''
+            };
+        } else {
+            return {
+                text: 'Upcoming',
+                badgeClass: 'status-upcoming',
+                class: ''
+            };
+        }
+    }
+
+
+    //Handle reminder form submission
+    const reminderForm = document.getElementById('reminderForm');
+    const addReminderMessage = document.getElementById('addReminderMessage');
+
+    reminderForm.addEventListener('submit', async(e) => {
+        //prevent page refresh
+        e.preventDefault();
+
+        //get form values
+        const reminderType = document.getElementById('reminder-type').value;
+        const reminderDate = document.getElementById('reminder-date').value || null;
+        const reminderMileage = document.getElementById('reminder-mileage').value || null;
+        const reminderNotes = document.getElementById('reminder-notes').value || null;
+
+        //validation: must have at least one trigger - datte or mileage
+
+        if(!reminderDate && !reminderMileage){
+            addReminderMessage.textContent = '✗ You must set either a due date or due mileage';
+            addReminderMessage.className = 'error';
+            return; 
+        }
+
+        //build data object
+        const reminderData = {
+            reminder_type: reminderType,
+            due_date: reminderDate || null,
+            due_mileage: reminderMileage ? parseInt(reminderMileage) : null
+        };
+        
+        if (reminderNotes) {
+            reminderData.notes = reminderNotes;
+        }
+
+        //send to backend
+        try{
+            const response = await fetch (`${API_URL}/vehicles/${vehicleId}/reminders`,{
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(reminderData)
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                //success!
+                addReminderMessage.textContent = '✓ ' + data.message;
+                addReminderMessage.className = 'success';
+
+                //reminderForm
+                reminderForm.reset();
+
+                //Hide form after short delauy
+                setTimeout(() => {
+                    addReminderForm.style.display = 'none';
+                    showAddReminderBtn.style.display = 'block';
+                    addReminderMessage.textContent = '';
+                    loadReminders();
+                }, 1500);
+            } else {
+                addReminderMessage.textContent = '✗ ' + data.detail;
+                addReminderMessage.className = 'error';
+            }
+        } catch (error){
+            addReminderMessage.textContent = 'x Network error';
+            addReminderMessage.className = 'error';
+            console.error('Error:', error);
+        }
+
+    });
+
+    //function to mark reminder as completed
+    window.completeReminder = async function(reminderId){
+        //ask for confitmation
+        const confirmed = confirm('Mark this reminder as completed');
+
+        if(!confirmed){
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/reminders/${reminderId}/complete`,{
+                method: 'PUT',
+                headers: {
+                    'Authorization' : `Bearer ${token}` 
+                }
+            });
+
+            if(response.ok){
+                loadReminders();
+            } else {
+                alert ('failed to mark reminder as complete');
+            }
+        } catch (error){
+            alert('Network error');
+            console.error('Error:', error);
+        }
+    }
+
+    window.deleteReminder = async function(reminderId) {
+        //ask for confirmation
+        const confirmed = confirm('Delete this reminder? this cannot be undone.');
+
+        if(!confirmed){
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/reminders/${reminderId}`,{
+                method:'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if(response.ok){
+                loadReminders();
+            } else {
+                alert('Failed to delete reminder');
+            }
+        }catch (error) {
+            alert('Network error');
+            console.error('Error:', error);
+        }
+    }
+
+
+
+
     
 }
 
